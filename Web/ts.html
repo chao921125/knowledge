@@ -61,12 +61,12 @@
     </div>
     <div>
         <h1>泛型：</h1>
-        <p>函数类型：function F<T>(): T {}</p>
-        <p>参数类型期望：function F(params: paramsType[string, number, ...]) {}</p>
-        <p>参数可选：function F(params?: type): type {}</p>
-        <p>参数默认值：function F(params = defaultValue): type {}</p>
-        <p>不固定参数：function F(params1, ...params) {}</p>
-    </div>
+        <p>函数类型：function F
+            <T>(): T {}</p>
+        <p>函数类型：function F
+            <T extends OT>(): T {}</p>
+    </div><a href="javascript:window.location.href='weixin://'">打开微信</a>
+    <a href="weixin://">weixin:// </a>
 
     <script>
         (function() {
@@ -162,7 +162,7 @@
             let cardPicker = deck.createCardPicker();
             let pickedCard = cardPicker();
 
-            alert("card: " + pickedCard.card + " of " + pickedCard.suit);
+            // alert("card: " + pickedCard.card + " of " + pickedCard.suit);
 
         })();
     </script>
