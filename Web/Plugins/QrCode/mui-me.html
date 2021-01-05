@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+    <title></title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/mui/3.7.1/css/mui.css" rel="stylesheet">
+    <script src='http://libs.baidu.com/jquery/1.8.3/jquery.min.js'></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/mui/3.7.1/js/mui.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        document.addEventListener( "plusready", function(){
+            mui.init();
+        });
+        function getCamera(){
+            var cam = plus.camera.getCamera();
+            //字符串数组,摄像头支持的拍照分辨率
+            var Resolutions = cam.supportedImageResolutions[0];
+            //字符串数组,摄像头支持的拍照文件格式
+            var Formats = cam.supportedImageFormats[0];
+            //调用拍照方法
+            //capturedFile,拍照完成后，照片的存放地址
+            cam.captureImage(function(capturedfile){
+                //拍照成功
+                alert(capturedfile);//打印一下
+            },function(){
+                //拍照失败
+            },{
+                //拍照参数
+                format : Formats,
+                index : 1//1表示主摄像头，2表示辅摄像头
+            });
+            
+            var Resolutions = cam.supportedImageResolutions[0];
+            //字符串数组，摄像头支持的拍照文件格式
+            var Formats = cam.supportedImageFormats[0];
+            //调用拍照方法
+            //capturedFile,拍照完成后，照片的存放地址
+            cam.captureImage(function(capturedFile){
+                //拍照成功
+                alert(capturedFile);//打印一下
+                //调用系统方法,根据照片地址获取照片
+                plus.io.resolvLocalFileSystemURL(capturedFile,
+                    //成功的回调函数
+                    //entry文件的相关信息
+                    function(entry){
+                        var img = document.createElement("img");
+                        img.src = entry.toLocalURL();
+                        document.documentElement.appendChild(img);
+                    },function(){
+                        //失败的回调函数
+                    });
+            });
+        }
+    </script>
+</head>
+<body>
+    <button onclick="getCamera()">照相</button>
+</body>
+</html>

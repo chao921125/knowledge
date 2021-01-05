@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<body>
+    <script src="./jsencrypt.js"></script>
+<script>
+var b64map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\\";
+var b64pad = "=";
+var BI_RM = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+//整型转字符串
+function int2char(n) {
+    return BI_RM.charAt(n);
+}
+
+//十六进制转Base64字符串
+function hex2b64(h) {
+    var i;
+    var c;
+    var ret = "";
+    for (i = 0; i + 3 <= h.length; i += 3) {
+        c = parseInt(h.substring(i, i + 3), 16);
+        ret += b64map.charAt(c >> 6) + b64map.charAt(c & 63);
+    }
+    if (i + 1 == h.length) {
+        c = parseInt(h.substring(i, i + 1), 16);
+        ret += b64map.charAt(c << 2);
+    }
+    else if (i + 2 == h.length) {
+        c = parseInt(h.substring(i, i + 2), 16);
+        ret += b64map.charAt(c >> 2) + b64map.charAt((c & 3) << 4);
+    }
+    while ((ret.length & 3) > 0) {
+        ret += b64pad;
+    }
+    return ret;
+}
+
+//Base64字符串转十六进制
+function b64tohex(s) {
+    var ret = "";
+    var i;
+    var k = 0; // b64 state, 0-3
+    var slop = 0;
+    for (i = 0; i < s.length; ++i) {
+        if (s.charAt(i) == b64pad) {
+            break;
+        }
+        var v = b64map.indexOf(s.charAt(i));
+        if (v < 0) {
+            continue;
+        }
+        if (k == 0) {
+            ret += int2char(v >> 2);
+            slop = v & 3;
+            k = 1;
+        }
+        else if (k == 1) {
+            ret += int2char((slop << 2) | (v >> 4));
+            slop = v & 0xf;
+            k = 2;
+        }
+        else if (k == 2) {
+            ret += int2char(slop);
+            ret += int2char(v >> 2);
+            slop = v & 3;
+            k = 3;
+        }
+        else {
+            ret += int2char((slop << 2) | (v >> 4));
+            ret += int2char(v & 0xf);
+            k = 0;
+        }
+    }
+    if (k == 1) {
+        ret += int2char(slop << 2);
+    }
+    return ret;
+}
+
+//十六进制转字节
+function hexToBytes(hex) {
+    for (var bytes = [], c = 0; c < hex.length; c += 2)
+        bytes.push(parseInt(hex.substr(c, 2), 16));
+    return bytes;
+}
+
+//字节转十六进制
+function bytesToHex(bytes) {
+    for (var hex = [], i = 0; i < bytes.length; i++) {
+        hex.push((bytes[i] >>> 4).toString(16));
+        hex.push((bytes[i] & 0xF).toString(16));
+    }
+    return hex.join("");
+}
+
+String.prototype.replaceAllStr=function(f,e){
+    var reg=new RegExp(f,"g");
+    return this.replace(reg,e);
+}
+
+function urlsafeEncode(e) {
+    return e.replaceAllStr("\\+","-").replaceAllStr("/","_").replaceAllStr("=","");
+}
+
+function urlsafeDecode(e) {
+    e =  e.replaceAllStr("-","+").replaceAllStr("_","/");
+    var mob = e.length%4;
+    if(mob>0){
+        e += "====".substr(mob);
+    }
+    return e;
+}
+
+
+//长字符串加密
+JSEncrypt.prototype.encryptLong = function (string) {
+    var k = this.getKey();
+    //var MAX_ENCRYPT_BLOCK = (((k.n.bitLength() + 7) >> 3) - 11);
+    var MAX_ENCRYPT_BLOCK = 117 * 2;
+
+    try {
+        var lt = "";
+        var ct = "";
+        //RSA每次加密117bytes，需要辅助方法判断字符串截取位置
+        //1.获取字符串截取点
+        var bytes = new Array();
+        bytes.push(0);
+        var byteNo = 0;
+        var len, c;
+        len = string.length;
+
+        var temp = 0;
+        for (var i = 0; i < len; i++) {
+            c = string.charCodeAt(i);
+            if (c >= 0x010000 && c <= 0x10FFFF) {
+                byteNo += 4;
+            } else if (c >= 0x000800 && c <= 0x00FFFF) {
+                byteNo += 3;
+            } else if (c >= 0x000080 && c <= 0x0007FF) {
+                byteNo += 2;
+            } else {
+                byteNo += 1;
+            }
+            if ((byteNo % MAX_ENCRYPT_BLOCK) >= 114 || (byteNo % MAX_ENCRYPT_BLOCK) == 0) {
+                if (byteNo - temp >= 114) {
+                    bytes.push(i);
+                    temp = byteNo;
+                }
+            }
+        }
+
+        //2.截取字符串并分段加密
+        if (bytes.length > 1) {
+            for (var i = 0; i < bytes.length - 1; i++) {
+                var str;
+                if (i == 0) {
+                    str = string.substring(0, bytes[i + 1] + 1);
+                } else {
+                    str = string.substring(bytes[i] + 1, bytes[i + 1] + 1);
+                }
+                var t1 = k.encrypt(str);
+                ct += t1;
+            }
+            ;
+            if (bytes[bytes.length - 1] != string.length - 1) {
+                var lastStr = string.substring(bytes[bytes.length - 1] + 1);
+                ct += k.encrypt(lastStr);
+            }
+            return hex2b64(ct);
+        }
+        var t = k.encrypt(string);
+        var y = hex2b64(t);
+        return y;
+    } catch (ex) {
+        return false;
+    }
+};
+
+//长字符串解密
+JSEncrypt.prototype.decryptLong = function (string) {
+    var k = this.getKey();
+    var MAX_DECRYPT_BLOCK = ((k.n.bitLength()+7)>>3);
+    // var MAX_DECRYPT_BLOCK = 128 * 2;
+    try {
+        var ct = "";
+        var t1;
+        var bufTmp;
+        var hexTmp;
+        var str = b64tohex(string);
+        var buf = hexToBytes(str);
+        var inputLen = buf.length;
+        //开始长度
+        var offSet = 0;
+        //结束长度
+        var endOffSet = MAX_DECRYPT_BLOCK;
+
+        //分段加密
+        while (inputLen - offSet > 0) {
+            if (inputLen - offSet > MAX_DECRYPT_BLOCK) {
+                bufTmp = buf.slice(offSet, endOffSet);
+                hexTmp = bytesToHex(bufTmp);
+                t1 = k.decrypt(hexTmp);
+                ct += t1;
+
+            } else {
+                bufTmp = buf.slice(offSet, inputLen);
+                hexTmp = bytesToHex(bufTmp);
+                t1 = k.decrypt(hexTmp);
+                ct += t1;
+
+            }
+            offSet += MAX_DECRYPT_BLOCK;
+            endOffSet += MAX_DECRYPT_BLOCK;
+        }
+        return ct;
+    } catch (ex) {
+        return false;
+    }
+};
+
+
+// Call this code when the page is done loading.
+var publicKeyStr =  "-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjdNhdKyin6IJ+Iwmx69REB2T2r6DW+tesSGWCV9SJrlZbuhJHlIGrXXbCOb3UD8j2fLL9BbTg0/AfqQeJCtkTLE4wkYXT/446WzGwuyS7cUZuuhzmJdMQjpkj5/ORuvMiG/MbjTjqlKaOkK2zUT8nnAnn4WdWqjVqVC4/FFfABWwB7zfC2UUcQg6XLpV4T1RX/ChJdOvmxRaawXft4X1daDxK8HAYLdxvMA69lBRo8XTdAQeF+YQowHZ+qHBlheqSND138V+NVYQGX4+H6XmfXe+NBz5fa7Rv8MFSU5QgT6VEdgFaDnwU1qzS6eG/rLWVOPxtp+9F6VDD/FyWz+zdQIDAQAB-----END PUBLIC KEY-----";
+
+var privateKeyStr = "-----BEGIN PRIVATE KEY-----MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCN02F0rKKfogn4jCbHr1EQHZPavoNb616xIZYJX1ImuVlu6EkeUgatddsI5vdQPyPZ8sv0FtODT8B+pB4kK2RMsTjCRhdP/jjpbMbC7JLtxRm66HOYl0xCOmSPn85G68yIb8xuNOOqUpo6QrbNRPyecCefhZ1aqNWpULj8UV8AFbAHvN8LZRRxCDpculXhPVFf8KEl06+bFFprBd+3hfV1oPErwcBgt3G8wDr2UFGjxdN0BB4X5hCjAdn6ocGWF6pI0PXfxX41VhAZfj4fpeZ9d740HPl9rtG/wwVJTlCBPpUR2AVoOfBTWrNLp4b+stZU4/G2n70XpUMP8XJbP7N1AgMBAAECggEANXuDAsafROeMLwhbD25TeWpN+W1ih+VIfi+WLs6dYjD/Qs2h1SdFkWAiS0cd+Er3MBdZRiDdfmUyyA8HtsgOOMWUC972p5nMyGnWwmcIOVXckBlcjixv+4GdrnOrDB+br8/JHb4gJHil5FaILPxY7z6IEqYGYsvMVt80AyKEWrk9L3uIr15sjDwFpvLQZz6TzIXdh1pn/UYmirRGuZuvdkiGfJI4YDlGBLXzr2kwTMlNnMPvEI28jfAJinyXWoyaR9LG2QszlRMurgP1R5D10R2WjFLeVCIGTJef1DgoefKkFsOMGGybAZ49cypQ+maMUgVZNvrCKXyBFsRpyYJGwQKBgQD+oO+Z5Tn3mMTPrUFbIz8cMlqU59Simto3E2qAbqLGu31liJS7VE0+KBLRj1XIR2E//82GOm29Kxb8S+vHGnPO9GKgy5oDDlefrSenLbvk/YG7DBK2w7E7pwhYaLXSWZf5tjKwQu+y1HxOHFP/3oNpF5qHXL74ALVhID+QZtSqrQKBgQCOluuD5DxEaE2B0PeWeKSd2YUfGk0zvrfvAJD6ajI08Umi1D9C9450J+SJGxqcBvXG/0U97XSLSI1gIcrc4ySFfq7GpriugcSUQE7ZSSahVKsqT/0OojQrz95IkTVQNBcUP3QpiWMl4DnJoIbCblr8suFCHYJJ3MG9ZijqsrlM6QKBgC19GtDnfp+ZDy/6x748Yb3r0PrhH7+c4ncMZO5k1XejbxeAevGscdA04IfHj4+kEN+aF2FvdsNgu05/UbPUKfRC/Iu1U+JP4Z+JE5huNy8FivObiIxWEYeSo48HxdO6ZcgaoJuUmbXc+AgMT4Vafyd7LAQasZMkrUKYvEJT3JJRAoGAAoEWC8/zWwQ18ES6RHND+N28H8q3dmQwGMt6wFsjHJjsQSbXIZb1cobM1bebJQheQqtzDN5hwJx6lyigxnZaytlpumVtMutmh3AFsn09Z3H0O58CA8LHhcl1zvJ17D2t9hYTNTOLgTvJ6AegtkN3555ApIeeJSvyXyAvMcgHxxkCgYEArDkSVoN7//vP/mhoJmRDDTKyWS+27HgH5qD9inEQFy0AM0nd7bbbCTheJw/UtN9c2IHhQ0Em5VIbe70Lxc6TrIqPEiucuzFDrvtot1lzsOcNOlMiovw+qnJvbAi2RNI/pUngQK0HbPh33YjEsWmRBD5aq0NDFsjpkWwVEpUg1bg=-----END PRIVATE KEY-----";
+
+var sourceStr = "这是因为原博文示例中密钥的生成使用了SecureRandom方法，但是这个方法在不同的平台表现并不一样。在 Windows 平台，它使用SHA1PRNG算法生成随机数，如果种子一样，那么生成的随机数也一定一样。但是在 Mac 平台，它使用NativePRNG算法生成随机数，就算种子一样，每次生成的随机数也不一样。所以，这就导致加解密时使用的密钥不一样，进而引起上述异常。使用SecureRandom.getInstance(\"SHA1PRNG\")指定具体算法即可解决问题。";
+
+var deStr = "TD/PrEEqTSwFzbK/4ebGTWCDORALPPinzDWkAejFZmaUXACP39/tonJUPpjsTw8VQ3QgfMFF8HLvcrKkDicpbHVj6mlmJ2dwua0nkIDbYmjwnt4xAiFKM8bYQj0sXf1laM+/3F8ViPbJN2A/cS6rLC32T06lypkIIhq22BuSq/ebuqaCqbwvij4M7p5DL2IpMzASD/tkvUPslrXU90eAQmW6aEVDNhtYRXlqQLQA29eYY23pVrKI5wBBuvOSnkiqd+c8c7S6NqI4vZXSF+X4HQZzrDSSk9THQQNPtDwzAqkPJ6XdPtR+XhpEh1RZocfUuf4S8G9qLpOGQivtHh2Dw3SqZONgP9JD4JIUtRNYx1o7DCnZN0rhojWo6y5brzbhqytutJWeZ5I85hCNDyHvttrPEITBx61HWDgdo6bNFBUgljxdaUYA5+LjQCizZUt/AJgALaPUmt9QaPKOGbk40M6WqCsxwBQfTWitrWU93h4L/MS7o0Z7n4VQxzawNptj0mXIIsGKDxSckI/JWCiSRiw0eCwh6NzryFQHIkqhSfomvLp5+fuzjpL1CUVMwV10L8aKMt75R0/z6wLkIT5E1fiJsX3xpFWHE1EQ0Mof/sTUxp/booJqXdZU/GXeCA0SBDLRX/uHpICmf8Mof2DH1WgbGNSb91EtT+Po1a5Wso0CfHpCoqwYyMcp7diDTTvmKTMLnfuFtjKde2yf40+B4YeAPwMtsIGKX40ilDanIrIegtV1nktWbO5ihnS7IrGJ85CzykBg+G5sfcYBzMhHp8SvjQT70rlC1MfmNrVma+Db8cE3E3DCVAkeiF78uXwrf6Dtqa55syPBzhui5V811kfEO5v08m3YLIjQtMP/zqTKpXTZXru1L788qh4wDaS5+4A/ssRL6GbC4sW4KTaOGLHjR7s8YkBzIccqGvKSJixhXE/Guerfl5Q6bdXDVhzVs3DRzSO9O5wtrnk2FpeX3CB0WiNF+DqgT/CRYXo5X+yFnY63a9CS8YhMiIrAL1NGaxkYCODhLQxtzffueiP9O23yFd79s9b/lIk73hC2xss0mRtKY0CvwAF/ApFq9BsBjTVHKPN7WsdRVsw4ADBLGhFj0wlMVyB9AH+Q1I/yl/7nmqgs9qgDGe5rbGe3KCxXwbrSRyEqftuUcLqohkrkF5PHf2ijBJNAndNYJUitKAltR3jQEVCzcoWmWNwVvGJVrS+USr4f0n6fjPPWGtwxN2N47XMQRc34evnvLd9wS28/+xv5BlPR4JnVx7oSKzasb8WluyxRQ9FrGFypnE0ax87SpFGdNLQIQvyfurfI8zvwgMWuNj16ni1Iptu81Jw8Pq/ttc3eyKMRPnY/6Eny9g==";
+//加密
+var encrypt = new JSEncrypt({default_key_size: 2048});
+encrypt.setKey(publicKeyStr);
+var encrypted = encrypt.encryptLong(sourceStr);
+// encrypted = urlsafeEncode(encrypted);
+
+//解密
+var decrypt = new JSEncrypt({default_key_size: 2048});
+decrypt.setKey(publicKeyStr);
+// encrypted = urlsafeDecode(encrypted);
+var decrypted = decrypt.decryptLong(deStr);
+
+console.log("encrypted: ", encrypted);
+console.log("decrypted: ", decrypted);
+</script>
+</body>
