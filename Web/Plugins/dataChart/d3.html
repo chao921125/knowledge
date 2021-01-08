@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>D3 test</title>
+</head>
+
+<body>
+<div class="container">
+    <div id="graph"></div>
+</div>
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/d3/6.3.1/d3.js"></script>
+<script>
+
+    var nodes = [ { name: "桂林" }, { name: "广州" },
+        { name: "厦门" }, { name: "杭州" },
+        { name: "上海" }, { name: "青岛" },
+        { name: "天津" } ];
+
+    var links = [ { source : 0 , target: 1 } , { source : 0 , target: 2 } ,
+        { source : 0 , target: 3 } , { source : 1 , target: 4 } ,
+        { source : 1 , target: 5 } , { source : 1 , target: 6 } ];
+
+    var width = 800;
+    var height = 600;
+    var svg = d3.select("#graph")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(d3.zoom() //创建缩放行为
+            .scaleExtent([-5, 2])
+            .on('zoom',zoom_actions)); //设置缩放范围
+
+    //初始化力学仿真器，通过布局函数格式化数据
+    var simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).distance(100))   //distance设置连线距离
+        .force("charge", d3.forceManyBody().strength(-100))  //注1>
+        .force("center", d3.forceCenter(width / 2, height / 2))  //设置力学仿真器的中心
+        .on("tick", ticked);
+
+    //布局函数格式化后的数据，注2>
+    console.log('nodes', nodes);
+    console.log('links', links);
+
+    var color = d3.scaleOrdinal(d3.schemeCategory20);  //生成颜色选择器函数，此函数返回颜色数组 (string [])
+
+    //添加group包裹svg元素以进行缩放，目的是在缩放时不会影响整个容器的位置
+    var g = svg.append("g")
+        .attr("class", "everything");
+
+    // 绘制连线
+    var svg_links = g.append('g')
+        .selectAll("line")
+        .data(links)
+        .enter()
+        .append("line")
+        .style("stroke", "#ccc")
+        .style("stroke-width", 3)
+
+
+    // 绘制节点
+    var svg_nodes = g.append('g')
+        .selectAll("circle")
+        .data(nodes)
+        .enter()
+        .append("circle")
+        .attr("r", '20')
+        .style("fill", function (d, i) {
+            return color(i);
+        }).call(d3.drag().on("start", dragstarted) //d3.drag() 创建一个拖曳行为
+            .on("drag", dragged)
+            .on("end", dragended));
+
+    //绘制描述节点的文字
+    var svg_texts =  g.append('g')
+        .selectAll("text")
+        .data(nodes)
+        .enter()
+        .append("text")
+        .style("fill", "black")
+        .attr("dx", 20)
+        .attr("dy", 8)
+        .text(function (d) {
+            return d.name;
+        });
+
+    //监听拖拽开始
+    function dragstarted(d) {
+        if (!d3.event.active) simulation.alphaTarget(0.3).restart(); //alpha是动画的冷却系数，运动过程中会不断减小，直到小于0.005为止，此时动画会停止。
+        d.fx = d.x;    //fx为固定坐标，x为初始坐标  注3>
+        d.fy = d.y;
+    }
+
+    //监听拖拽中
+    function dragged(d) {
+        d.fx = d3.event.x;  //fevent.x为拖拽移动时的坐标
+        d.fy = d3.event.y;
+    }
+
+    //监听拖拽结束
+    function dragended(d) {
+        if (!d3.event.active) simulation.alphaTarget(0);
+        d.fx = null;        //固定坐标清空
+        d.fy = null;
+    }
+
+    function zoom_actions() {
+        g.attr("transform", d3.event.transform)
+    }
+
+    //拖拽时的事件监听器  以实时更新坐标
+    function ticked() {
+        svg_links.attr("x1", function (d) {
+            return d.source.x;
+        })
+            .attr("y1", function (d) {
+                return d.source.y;
+            })
+            .attr("x2", function (d) {
+                return d.target.x;
+            })
+            .attr("y2", function (d) {
+                return d.target.y;
+            });
+
+        svg_nodes.attr("cx", function (d) {
+            return d.x;
+        })
+            .attr("cy", function (d) {
+                return d.y;
+            });
+
+        svg_texts.attr("x", function (d) {
+            return d.x;
+        })
+            .attr("y", function (d) {
+                return d.y;
+            });
+    }
+
+</script>
+
+</body>
+</html>
