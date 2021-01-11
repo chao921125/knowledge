@@ -62,16 +62,25 @@
         body {
             padding-bottom: 50px;
         }
+        table {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
     <!--行内样式-->
     <div style="width: 100%; height: 30px; line-height: 30px; background-color: #f0ad4e;">
-        区分是否是块级元素和行内元素就看看是否当前元素独占一行，行内元素不建议包裹块级元素（部分标签已经添加了br美化，所以请仔细查询文档）
+        区分是否是块级元素和行内元素就看看是否当前元素独占一行，行内元素不建议包裹块级元素，两者可以通过css相互转换
     </div>
-    <a href="https://www.runoob.com/html/html-tutorial.html">教程首页</a>
-
+    <a href="https://www.runoob.com/">菜鸟教程</a>
+    <a href="https://www.w3school.com.cn/">w3c教程</a>
+    <a href="https://developer.mozilla.org/zh-CN/">MDN教程</a>
+    <div>
+        语义化标签分为两类：双标签和单标签，即：&lt;element&gt;&lt;/element&gt;
+    </div>
+    <div>以下标签按照字母顺序罗列，由于一些不呈现元素，<i style="color: red;">请打开源代码查看</i></div>
 <!--start-->
+
     <br>
     <br>
     <!--标题-->
@@ -922,7 +931,29 @@
             <td>定义对象的参数。</td>
         </tr>
         </tbody></table>
-<!--end-->
+    <input type="button" value="button" placeholder="button">
+    <input type="checkbox" value="checkbox" placeholder="checkbox">
+    <input type="color" value="color" placeholder="color">
+    <input type="date" value="date" placeholder="date">
+    <input type="datetime" value="datetime" placeholder="datetime">
+    <input type="datetime-local" value="datetime-local" placeholder="datetime-local">
+    <input type="email" value="email" placeholder="email">
+    <input type="file" value="file" placeholder="file">
+    <input type="hidden" value="hidden" placeholder="hidden">
+    <input type="image" value="image" placeholder="image">
+    <input type="month" value="month" placeholder="month">
+    <input type="number" value="number" placeholder="number">
+    <input type="password" value="password" placeholder="password">
+    <input type="radio" value="radio" placeholder="radio">
+    <input type="reset" value="reset" placeholder="reset">
+    <input type="search" value="search" placeholder="search">
+    <input type="submit" value="submit" placeholder="submit">
+    <input type="tel" value="tel" placeholder="tel">
+    <input type="text" value="text" placeholder="text">
+    <input type="time" value="time" placeholder="time">
+    <input type="url" value="url" placeholder="url">
+    <input type="week" value="week" placeholder="week">
+    <!--end-->
 
     <!--asyncNew	async	规定异步执行脚本（仅适用于外部脚本）。
         charset	charset	规定在脚本中使用的字符编码（仅适用于外部脚本）。
