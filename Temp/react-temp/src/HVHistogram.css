@@ -1,0 +1,18 @@
+/*
+ * Homework 2
+ * HVHistogram skeleton CSS
+ *
+ * Author: Denis Gracanin
+ * Version: 5.0
+ */
+.com-flex {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.top-box {
+    display: flex;
+}
+.top-box .box {
+    width: 50%;
+}
