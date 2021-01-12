@@ -22,18 +22,15 @@ class HVHistogram extends React.Component {
         // 原始数据
         let datax = [];
         let datay = [];
-        let dataNames = [];
         this.props.chartData.forEach((item, index) => {
             datax.push(index + 1 + "");
             datay.push(item.value);
-            dataNames.push("Bar" + (index + 1) + "： " + item.name);
         });
-        // this.setState({dataNames: dataNames});
 
         console.log(JSON.stringify(datax));
         console.log(JSON.stringify(datay));
 
-        var width = 800,
+        let width = 600,
             height = 400,
             padding = {
                 top: 10,
@@ -41,18 +38,22 @@ class HVHistogram extends React.Component {
                 bottom: 40,
                 left: 40
             };
+        let dWidth = Math.floor((width - padding.left - padding.right - padding.bottom - padding.top) / datax.length);
+        let rangeWidth = datax.map((item) => {
+            return item * dWidth;
+        });
 
         d3.select(this.myReference.current).selectAll("*").remove();
-        var svg = d3.select(this.myReference.current)
+        let svg = d3.select(this.myReference.current)
             .append('svg')
             .attr('width', width + 'px')
             .attr('height', height + 'px');
 
         // x轴
-        var xScale = d3.scaleOrdinal()
+        let xScale = d3.scaleOrdinal()
             .domain(datax)
-            .range([100, 200, 300, 400, 500, 600]);
-        var xAxis = d3.axisBottom()
+            .range(rangeWidth);
+        let xAxis = d3.axisBottom()
             .scale(xScale);
         svg.append('g')
             .call(xAxis)
@@ -61,31 +62,35 @@ class HVHistogram extends React.Component {
             .attr("dx", "50px");
 
         // y轴
-        var yScale = d3.scaleLinear()
+        let yScale = d3.scaleLinear()
             .domain([0, d3.max(datay)])
             .range([height - padding.bottom, padding.top]);
-        var yAxis = d3.axisLeft()
+        let yAxis = d3.axisLeft()
             .scale(yScale)
             .ticks(10);
         svg.append('g')
             .call(yAxis)
-            .attr("transform", "translate(" + 100 + ",0)");
+            .attr("transform", "translate(" + dWidth + ",0)");
 
-        var bar = svg.selectAll(".bar")
+        let bar = svg.selectAll(".bar")
             .data(datay)
             .enter().append("g")
             .attr("class", "bar")
             .attr("transform", function(d, i) {
-                return "translate(" + xScale(i * 100) + "," + yScale(d) + ")";
+                return "translate(" + xScale(i * dWidth) + "," + yScale(d) + ")";
             });
 
         bar.append("rect")
             .attr("x", 1)
-            .attr("width", 100)
+            .attr("width", dWidth)
             .attr("height", function(d) {
                 return height - yScale(d) - padding.bottom;
             })
-            .attr("stroke", "White");
+            .attr("stroke", "White")
+            .attr("fill", function(d, i) {
+                if (i === 0) return "red";
+                return "blue";
+            });
 
         bar.append("text")
             .attr("dy", ".75em")
@@ -93,16 +98,24 @@ class HVHistogram extends React.Component {
             .attr("x", 50)
             .attr("text-anchor", "middle")
             .attr("font-size", "8px")
-            .attr("fill", "White")
-            .text(function(d) {
-                return d;
-            });
+            .attr("fill", "White");
 
-        console.log(JSON.stringify(datax));
-        console.log(JSON.stringify(datay));
+    }
+
+    componentWillReceiveProps  (nextProps, nextState, nextContext) {
+        let dataName = [];
+        this.props.chartData.forEach((item, index) => {
+            dataName.push("Bar" + (index + 1) + "： " + item.name);
+        });
+        this.setState({dataNames: dataName});
     }
 
     componentDidMount() {
+        let dataName = [];
+        this.props.chartData.forEach((item, index) => {
+            dataName.push("Bar" + (index + 1) + "： " + item.name);
+        });
+        this.setState({dataNames: dataName});
         this.paint();
     }
 
@@ -114,10 +127,10 @@ class HVHistogram extends React.Component {
         return (
             <div className="top-box">
                 <div className="box chart-box">
-                    <div ref={this.myReference}></div>
+                    <div className="chart" ref={this.myReference}></div>
                     <div>{
                         this.state.dataNames.map((sample, index) => {
-                            return <p key={index}>{sample}</p>;
+                            return <div key={index}>{sample}</div>;
                         })
                     }</div>
                 </div>

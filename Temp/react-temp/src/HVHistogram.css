@@ -13,6 +13,9 @@
 .top-box {
     display: flex;
 }
-.top-box .box {
-    width: 50%;
+.top-box .chart-box {
+    width: 600px;
+}
+.top-box .select-box {
+    width: calc(100% - 600px);
 }
