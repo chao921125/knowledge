@@ -1,5 +1,1 @@
-"use strict";
-
-(() => {
-    // const let
-})();
+// import * as THREE from "../libs/three";
