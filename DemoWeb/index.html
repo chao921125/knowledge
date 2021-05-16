@@ -23,6 +23,8 @@
 		scene.add(mesh);
 		var mesh3 = mesh3();
 		scene.add(mesh3);
+		var mesh4 = mesh4();
+		scene.add(mesh4);
 		var line = line();
 		scene.add(line);
 
@@ -59,6 +61,17 @@
 			mesh3.translateX(220); //球体网格模型沿Y轴正方向平移120
 			mesh3.position.set(180, 0, 0);//设置mesh3模型对象的xyz坐标为120,0,0
 			return mesh3;
+		}
+		function mesh4() {
+			var geometry4 = new THREE.CylinderGeometry(10, 10, 100, 55);
+			var material4 = new THREE.MeshLambertMaterial({
+				color: 0xffff00
+			});
+			var mesh4 = new THREE.Mesh(geometry4, material4); //网格模型对象Mesh
+			mesh4.translateX(320); //球体网格模型沿Y轴正方向平移120
+			mesh4.translateY(120); //球体网格模型沿Y轴正方向平移120
+			mesh4.position.set(180, 0, 0);//设置mesh3模型对象的xyz坐标为120,0,0
+			return mesh4;
 		}
 
 		function line() {
